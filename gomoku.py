@@ -79,10 +79,10 @@ class Board:
 
     # Verifica se o jogador fez cinco em linha em qualquer direção (horizontal, vertical ou diagonal)
     def check_win(self, player):
-        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)] 
         for r in range(SIZE):
-            for c in range(SIZE):
-                if self.grid[r][c] != player:
+            for c in range(SIZE):# visita todas as cel
+                if self.grid[r][c] != player:  # ignora vazio
                     continue
                 for dr, dc in directions:
                     count = 1
@@ -123,18 +123,18 @@ def opponent(player):
 
 # Retorna a lista de casas vazias próximas às peças já jogadas — reduz o espaço de busca do minimax
 def get_candidates(board):
-    candidates = []
-    has_piece = False
+    candidates = [] # jogadas relevantes
+    has_piece = False # detecta tabuleiro vazio
     for r in range(SIZE):
-        for c in range(SIZE):
-            if board.grid[r][c] == EMPTY:
+        for c in range(SIZE): # percorre tabuleiro
+            if board.grid[r][c] == EMPTY: # ignora vazios
                 continue
-            has_piece = True
+            has_piece = True # se achar peça
             for dr in range(-1, 2):
-                for dc in range(-1, 2):
+                for dc in range(-1, 2): # vai varrer todas casas ao redor
                     nr = r + dr
-                    nc = c + dc
-                    if nr < 0 or nr >= SIZE or nc < 0 or nc >= SIZE:
+                    nc = c + dc # calcula vizinho da peça 
+                    if nr < 0 or nr >= SIZE or nc < 0 or nc >= SIZE: # evita sair da matriz
                         continue
                     if board.grid[nr][nc] == EMPTY:
                         if (nr, nc) not in candidates:
@@ -182,7 +182,7 @@ def heuristic_beginner(board):
 
 # Algoritmo minimax sem poda alfa-beta — explora todas as jogadas até a profundidade definida
 def minimax(board, depth, maximizing):
-    if board.check_win(WHITE):
+    if board.check_win(WHITE): # checa vitória
         return 100000
     if board.check_win(BLACK):
         return -100000
@@ -307,7 +307,7 @@ def best_move_pro(board, heuristic_fn):
             depth_reached = depth
         except TimeOut:
             failed = True
-        if failed == True:
+        if failed == True: 
             break
         depth = depth + 1
     return best_move, best_val, depth_reached
