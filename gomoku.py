@@ -44,7 +44,7 @@ class Board:
 
     # Imprime o tabuleiro no console com as coordenadas A-I e 1-9, destacando a última jogada com [ ]
     def display(self):
-        print("   ", end="")
+        print("    ", end="")
         for letter in COLS:
             print(letter, end="  ")
         print()
