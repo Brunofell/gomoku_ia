@@ -40,17 +40,17 @@ def get_candidates(board):
             if board.grid[r][c] == EMPTY: # ignora vazios
                 continue
             has_piece = True # se achar peça
-            for dr in range(-1, 2):
+            for dr in range(-1, 2): # gera -1, 0, 1 e não entra em 2
                 for dc in range(-1, 2): # vai varrer todas casas ao redor
                     nr = r + dr
                     nc = c + dc # calcula vizinho da peça 
                     if nr < 0 or nr >= SIZE or nc < 0 or nc >= SIZE: # evita sair da matriz
                         continue
                     if board.grid[nr][nc] == EMPTY:
-                        if (nr, nc) not in candidates:
+                        if (nr, nc) not in candidates: # evita duplicados
                             candidates.append((nr, nc))
     if has_piece == False:
-        return [(4, 4)]
+        return [(4, 4)] # retorna o cento do tabuleiro caso o tab esteja vazio
     return candidates
 
 
@@ -60,90 +60,90 @@ def get_candidates(board):
 
 # Conta os pontos de sequências de peças do jogador em todas as direções — usado pela heurística
 def count_sequences(board, player):
-    directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
-    total = 0
+    directions = [(0, 1), (1, 0), (1, 1), (1, -1)] # horizontal, vertical e diagonais
+    total = 0 # pontuação total do jogador
     for r in range(SIZE):
-        for c in range(SIZE):
-            if board.grid[r][c] != player:
+        for c in range(SIZE): # percorre todo tabuleiro
+            if board.grid[r][c] != player: # ignora peças que não são do jogador atual
                 continue
-            for dr, dc in directions:
-                count = 0
+            for dr, dc in directions: # testa todas direções possíveis
+                count = 0 # contador da sequência encontrada
                 nr = r
-                nc = c
-                while nr >= 0 and nr < SIZE and nc >= 0 and nc < SIZE:
-                    if board.grid[nr][nc] != player:
+                nc = c # começa na posição atual
+                while nr >= 0 and nr < SIZE and nc >= 0 and nc < SIZE: # enquanto estiver dentro da matriz
+                    if board.grid[nr][nc] != player: # se sequência parar
                         break
-                    count = count + 1
-                    nr = nr + dr
-                    nc = nc + dc
+                    count = count + 1 # aumenta tamanho da sequência
+                    nr = nr + dr # anda linha na direção
+                    nc = nc + dc # anda coluna na direção
                 if count > 5:
-                    count = 5
+                    count = 5 # limita em 5 porque SCORE_TABLE vai até 5
                 if count > 0:
-                    total = total + SCORE_TABLE[count]
+                    total = total + SCORE_TABLE[count] # soma pontuação da sequência
     return total
 
 
 # Avalia o estado do tabuleiro e retorna uma nota — positivo é bom para a IA, negativo é bom para o humano
 def heuristic_beginner(board):
     if board.check_win(WHITE):
-        return 100000
+        return 100000 # estado extremamente bom para IA
     if board.check_win(BLACK):
-        return -100000
-    ai_pts = count_sequences(board, WHITE)
-    hum_pts = count_sequences(board, BLACK)
-    return ai_pts - hum_pts
+        return -100000 # estado extremamente ruim para IA
+    ai_pts = count_sequences(board, WHITE) # calcula força da IA
+    hum_pts = count_sequences(board, BLACK) # calcula força do humano
+    return ai_pts - hum_pts # positivo favorece IA, negativo favorece humano
 
 
 # Algoritmo minimax sem poda alfa-beta — explora todas as jogadas até a profundidade definida
 def minimax(board, depth, maximizing):
-    if board.check_win(WHITE): # checa vitória
+    if board.check_win(WHITE): # verifica vitória da IA
         return 100000
-    if board.check_win(BLACK):
+    if board.check_win(BLACK): # verifica vitória do humano
         return -100000
-    if depth == 0 or board.is_full():
-        return heuristic_beginner(board)
-
-    moves = get_candidates(board)
-
-    if maximizing == True:
-        best = -math.inf
+    if depth == 0 or board.is_full(): # condição de parada da recursão
+        return heuristic_beginner(board) # avalia estado atual do tabuleiro
+    
+    moves = get_candidates(board) # pega jogadas relevantes próximas das peças
+    
+    if maximizing == True: # turno da IA (MAX)
+        best = -math.inf # começa no menor valor possível
         for move in moves:
             r = move[0]
             c = move[1]
-            copy = board.copy()
-            copy.place(r, c, WHITE)
-            val = minimax(copy, depth - 1, False)
+            copy = board.copy() # cria cópia do tabuleiro
+            copy.place(r, c, WHITE) # simula jogada da IA
+            val = minimax(copy, depth - 1, False) # próxima camada será humano (MIN)
             if val > best:
-                best = val
+                best = val # IA escolhe maior valor possível
         return best
-    else:
-        best = math.inf
+    else: # turno do humano (MIN)
+        best = math.inf # começa no maior valor possível
         for move in moves:
             r = move[0]
             c = move[1]
-            copy = board.copy()
-            copy.place(r, c, BLACK)
-            val = minimax(copy, depth - 1, True)
+            copy = board.copy() # cria cópia do tabuleiro
+            copy.place(r, c, BLACK) # simula jogada do humano
+            val = minimax(copy, depth - 1, True) # próxima camada será IA (MAX)
             if val < best:
-                best = val
+                best = val # humano escolhe pior cenário para IA
         return best
 
 
 # Escolhe a melhor jogada para o nível iniciante — testa cada candidato com o minimax e retorna o melhor
 def best_move_beginner(board):
-    best_val = -math.inf
-    best_move = None
-    moves = get_candidates(board)
+    best_val = -math.inf # melhor valor encontrado até agora
+    best_move = None # melhor jogada encontrada
+    moves = get_candidates(board) # pega jogadas relevantes
     for move in moves:
         r = move[0]
         c = move[1]
-        copy = board.copy()
-        copy.place(r, c, WHITE)
-        val = minimax(copy, BEGINNER_DEPTH - 1, False)
+        copy = board.copy() # cria cópia do tabuleiro
+        copy.place(r, c, WHITE) # simula jogada da IA
+        val = minimax(copy, BEGINNER_DEPTH - 1, False) # calcula valor da jogada usando minimax
         if val > best_val:
-            best_val = val
-            best_move = move
-    return best_move, best_val
+            best_val = val # atualiza melhor valor
+            best_move = move # atualiza melhor jogada
+    return best_move, best_val # retorna jogada escolhida e valor heurístico
 
 
 #-----------------------------------
@@ -463,76 +463,76 @@ class TimeOut(Exception):
 # Minimax com poda alfa-beta e verificação de tempo — interrompe a busca se o deadline for ultrapassado
 def minimax_pro(board, depth, alpha, beta, maximizing, deadline, heuristic_fn):
     if time.time() >= deadline:
-        raise TimeOut()
+        raise TimeOut() # interrompe toda busca caso tempo acabe
     if board.check_win(WHITE):
-        return 100000
+        return 100000 # vitória da IA
     if board.check_win(BLACK):
-        return -100000
+        return -100000 # vitória do humano
     if depth == 0 or board.is_full():
-        return heuristic_fn(board)
-    moves = get_candidates(board)
-    if maximizing == True:
-        best = -math.inf
+        return heuristic_fn(board) # usa heurística recebida como parâmetro
+    moves = get_candidates(board) # gera jogadas relevantes
+    if maximizing == True: # turno da IA (MAX)
+        best = -math.inf # menor valor possível inicialmente
         for move in moves:
             r = move[0]
             c = move[1]
-            copy = board.copy()
-            copy.place(r, c, WHITE)
+            copy = board.copy() # copia tabuleiro
+            copy.place(r, c, WHITE) # simula jogada da IA
             val = minimax_pro(copy, depth - 1, alpha, beta, False, deadline, heuristic_fn)
             if val > best:
-                best = val
+                best = val # IA escolhe maior valor
             if val > alpha:
-                alpha = val
+                alpha = val # atualiza melhor valor encontrado pela IA
             if beta <= alpha:
-                break
+                break # poda alfa-beta: ramo inútil é cortado
         return best
-    else:
-        best = math.inf
+    else: # turno do humano (MIN)
+        best = math.inf # maior valor possível inicialmente
         for move in moves:
             r = move[0]
             c = move[1]
-            copy = board.copy()
-            copy.place(r, c, BLACK)
+            copy = board.copy() # copia tabuleiro
+            copy.place(r, c, BLACK) # simula jogada do humano
             val = minimax_pro(copy, depth - 1, alpha, beta, True, deadline, heuristic_fn)
             if val < best:
-                best = val
+                best = val # humano escolhe menor valor
             if val < beta:
-                beta = val
+                beta = val # atualiza melhor valor encontrado pelo humano
             if beta <= alpha:
-                break
+                break # poda alfa-beta
         return best
 
 
 # Iterative Deepening — vai aumentando a profundidade enquanto houver tempo, usa o melhor resultado completo
 def best_move_pro(board, heuristic_fn):
-    start = time.time()
-    deadline = start + TIME_LIMIT
-    best_move = None
-    best_val = -math.inf
-    depth_reached = 0
-    depth = 1
-    while depth < 20:
-        move_this_depth = None
-        val_this_depth = -math.inf
-        failed = False
+    start = time.time() # salva horário inicial
+    deadline = start + TIME_LIMIT # calcula horário limite
+    best_move = None # melhor jogada final
+    best_val = -math.inf # melhor valor final
+    depth_reached = 0 # profundidade máxima concluída
+    depth = 1 # começa busca em profundidade 1
+    while depth < 20: # continua aprofundando enquanto houver tempo
+        move_this_depth = None # melhor jogada da profundidade atual
+        val_this_depth = -math.inf # melhor valor da profundidade atual
+        failed = False # controla timeout
         try:
-            for move in get_candidates(board):
+            for move in get_candidates(board): # testa cada jogada possível
                 r = move[0]
                 c = move[1]
-                copy = board.copy()
-                copy.place(r, c, WHITE)
-                val = minimax_pro(copy, depth - 1, -math.inf, math.inf, False, deadline, heuristic_fn)
+                copy = board.copy() # cria cópia do tabuleiro
+                copy.place(r, c, WHITE) # simula jogada da IA
+                val = minimax_pro(copy, depth - 1, -math.inf, math.inf, False, deadline, heuristic_fn ) # executa minimax profissional
                 if val > val_this_depth:
-                    val_this_depth = val
-                    move_this_depth = move
-            best_move = move_this_depth
-            best_val = val_this_depth
-            depth_reached = depth
+                    val_this_depth = val # guarda melhor valor encontrado
+                    move_this_depth = move # guarda melhor jogada encontrada
+            best_move = move_this_depth # salva melhor jogada COMPLETA da profundidade
+            best_val = val_this_depth # salva melhor valor
+            depth_reached = depth # salva profundidade concluída
         except TimeOut:
-            failed = True
-        if failed == True: 
-            break
-        depth = depth + 1
+            failed = True # timeout interrompe busca
+        if failed == True:
+            break # sai do loop se tempo acabar
+        depth = depth + 1 # aumenta profundidade da busca
     return best_move, best_val, depth_reached
 
 
