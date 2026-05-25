@@ -18,3 +18,6 @@ BEGINNER_DEPTH = 2
 INTERMEDIATE_DEPTH = 4
 PRO_DEPTH = 7
 TIME_LIMIT = 3.0
+# valor associado a penalidade de ter abertura nas duas pontas
+# valor menor que 10, 2 é jogo "honesto" e empatado, 5 ja me deu trabalho
+PENALTY_OPEN_END = 2

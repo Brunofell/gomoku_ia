@@ -168,6 +168,8 @@ def heuristic_intermediate(board):
     directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
 
     # iterando nas rows e columns do tabuleiro
+    # essencialmente vou fazer a mesma coisa do beginner, mas tbm olhar as pontas
+    # a depender se ela foi aberta ou fechada eu penalizo ou beneficio a sequencia
     for r in range(SIZE):
         for c in range(SIZE):
             player = board.grid[r][c]
@@ -207,57 +209,54 @@ def heuristic_intermediate(board):
                     open_ends += 1
                 if open_2:
                     open_ends += 1
-                value = 0
 
-                # =================================================
-                # SEQUÊNCIAS ABERTAS / FECHADAS
-                # =================================================
+                ## sequencias abertas e fechadas
+                value = 0
+                # se tem duas peças em sequência, é relativamente fraco, mas se tiver as duas pontas abertas é um pouco mais forte
                 if count == 2:
                     if open_ends == 2:
-                        value = 50
+                        value = PENALTY_OPEN_END*SCORE_TABLE[count]
                     elif open_ends == 1:
-                        value = 10
+                        value = (1/2)*SCORE_TABLE[count]
+                # se tiver três peças em sequência, é uma ameaça, mas se tiver as duas pontas abertas é uma ameaça imediata
                 elif count == 3:
                     if open_ends == 2:
-                        value = 500
+                        value = PENALTY_OPEN_END*SCORE_TABLE[count]
                     elif open_ends == 1:
-                        value = 100
+                        value = (1/2)*SCORE_TABLE[count]
+                # se tiver quatro peças em sequência, é uma ameaça gravíssima, mas se tiver as duas pontas abertas é uma ameaça de vitória
                 elif count == 4:
                     if open_ends == 2:
-                        value = 5000
+                        value = PENALTY_OPEN_END*SCORE_TABLE[count]
                     elif open_ends == 1:
-                        value = 2000
+                        value = (1/2)*SCORE_TABLE[count]
+                # se tiver cinco ou mais peças em sequência, ganhou
                 elif count >= 5:
-                    value = 100000
+                    value = SCORE_TABLE[count]
 
-                # =================================================
-                # BÔNUS POR CENTRALIDADE
-                # =================================================
-
+                ## bonus pela centralidade
+                # aqui a ideia é usar o analogo da formula de distancia ao centro de uma circunferencia
+                # com posicao centrada em (4,4)
                 center_bonus = (
                     (4 - abs(4 - r)) +
-                    (4 - abs(4 - c))
-                )
+                    (4 - abs(4 - c)))
                 value += center_bonus
 
-                # =================================================
-                # BLOQUEIO IMEDIATO DE AMEAÇAS
-                # =================================================
-                # forte penalização para ameaças do humano
+                ## bloqueio imediato, para isso
+                # forte penalização para o humano
                 if player == BLACK:
                     if count == 4 and open_ends >= 1:
                         value *= 4
                     elif count == 3 and open_ends == 2:
                         value *= 2
 
-                # =================================================
-                # APLICA SCORE
-                # =================================================
+                # calculo score final
                 if player == WHITE:
                     score += value
                 else:
                     score -= value
     return score
+
 
 def minimax_intermediate(board, depth, alpha, beta, maximizing, heuristic_fn):
     # checando condicaoes de parada
@@ -315,13 +314,145 @@ def best_move_intermediate(board, heuristic_fn):
             best_move = move
     return best_move, best_val
 
+
 #-----------------------------------
 ## pro level functions
 #-----------------------------------
 
-
+# aqui a ideia é pegar a heuristica intermediate e expandir ela um pouco mais
 def heuristic_pro(board):
-    pass
+    # checando se ja ha vencedor
+    if board.check_win(WHITE):
+        return 100000
+    if board.check_win(BLACK):
+        return -100000
+    
+    # inicializa sem nada de score
+    score = 0
+    directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+
+
+    # contador para detectar forks / ameaças múltiplas
+    # com 3 abertas
+    white_open_threes = 0
+    black_open_threes = 0
+    # com 4 abertas
+    white_open_fours = 0
+    black_open_fours = 0
+
+    # iterando nas rows e columns do tabuleiro
+    # essencialmente vou fazer a mesma coisa do beginner, mas tbm olhar as pontas
+    # a depender se ela foi aberta ou fechada eu penalizo ou beneficio a sequencia
+    for r in range(SIZE):
+        for c in range(SIZE):
+            player = board.grid[r][c]
+            if player == EMPTY:
+                continue
+            for dr, dc in directions:
+                # evita contar mesma sequência múltiplas vezes
+                prev_r = r - dr
+                prev_c = c - dc
+                if 0 <= prev_r < SIZE and 0 <= prev_c < SIZE:
+                    if board.grid[prev_r][prev_c] == player:
+                        continue
+                # conta sequência
+
+                count = 0
+                nr = r
+                nc = c
+                while 0 <= nr < SIZE and 0 <= nc < SIZE:
+                    if board.grid[nr][nc] != player:
+                        break
+                    count += 1
+                    nr += dr
+                    nc += dc
+                # verifica extremidade final
+                open_1 = False
+                if 0 <= nr < SIZE and 0 <= nc < SIZE:
+                    if board.grid[nr][nc] == EMPTY:
+                        open_1 = True
+                # verifica extremidade inicial
+                back_r = r - dr
+                back_c = c - dc
+                open_2 = False
+                if 0 <= back_r < SIZE and 0 <= back_c < SIZE:
+                    if board.grid[back_r][back_c] == EMPTY:
+                        open_2 = True
+                open_ends = 0
+                if open_1:
+                    open_ends += 1
+                if open_2:
+                    open_ends += 1
+
+                ## sequencias abertas e fechadas
+                value = 0
+                # se tem duas peças em sequência, é relativamente fraco, mas se tiver as duas pontas abertas é um pouco mais forte
+                if count == 2:
+                    if open_ends == 2:
+                        value = PENALTY_OPEN_END*SCORE_TABLE[count]
+                    elif open_ends == 1:
+                        value = (1/2)*SCORE_TABLE[count]
+                # se tiver três peças em sequência, é uma ameaça, mas se tiver as duas pontas abertas é uma ameaça imediata
+                elif count == 3:
+                    if open_ends == 2:
+                        value = PENALTY_OPEN_END*SCORE_TABLE[count]
+                        # indo um nivel extra e contando o nro de seq de 3s
+                        if player == WHITE:
+                            white_open_threes += 1
+                        else:
+                            black_open_threes += 1
+                    elif open_ends == 1:
+                        value = (1/2)*SCORE_TABLE[count]
+                # se tiver quatro peças em sequência, é uma ameaça gravíssima, mas se tiver as duas pontas abertas é uma ameaça de vitória
+                elif count == 4:
+                    if open_ends == 2:
+                        value = PENALTY_OPEN_END*SCORE_TABLE[count]
+                        # agora contando o nro de seq de 4s
+                        if player == WHITE:
+                            white_open_fours += 1
+                        else:
+                            black_open_fours += 1
+                    elif open_ends == 1:
+                        value = (1/2)*SCORE_TABLE[count]
+                # se tiver cinco ou mais peças em sequência, ganhou
+                elif count >= 5:
+                    value = SCORE_TABLE[min(5,count)] #maximo eh 5
+
+                ## bonus pela centralidade
+                # aqui a ideia é usar o analogo da formula de distancia ao centro de uma circunferencia
+                # com posicao centrada em (4,4)
+                center_bonus = (
+                    (4 - abs(4 - r)) +
+                    (4 - abs(4 - c)))
+                value += center_bonus
+
+                ## bloqueio imediato, para isso
+                # forte penalização para o humano
+                if player == BLACK:
+                    if count == 4 and open_ends >= 1:
+                        value *= 4
+                    elif count == 3 and open_ends == 2:
+                        value *= 2
+
+                # calculo score final
+                if player == WHITE:
+                    score += value
+                else:
+                    score -= value
+
+    # contamos as seq de 3s e 4s abertas, agora penalizamos elas
+    # pego a ordem atual delas pra calcular a penalidade e incrementa ele de uma potencia
+    # porem pega apenas metade para a soma
+    if white_open_threes >= 2:
+        score += (1/2)*SCORE_TABLE[min(5,white_open_threes+1)]
+    if black_open_threes >= 2:
+        score -= (1/2)*SCORE_TABLE[min(5,black_open_threes+1)]
+    if white_open_fours >= 2:
+        score += (1/2)*SCORE_TABLE[min(5,white_open_fours+1)]
+    if black_open_fours >= 2:
+        score -= (1/2)*SCORE_TABLE[min(5,black_open_fours+1)]
+
+    return score
 
 
 # Exceção usada para interromper o minimax quando o tempo limite é atingido
@@ -449,6 +580,8 @@ def play():
                 heuristic_fn = heuristic_intermediate
                 move, val = best_move_intermediate(board, heuristic_fn)
             else:
+                # esse aqui foi um teste bem interessante!
+                #heuristic_fn = heuristic_intermediate
                 heuristic_fn = heuristic_pro
                 move, val, depth = best_move_pro(board, heuristic_fn)
             elapsed = time.time() - start
